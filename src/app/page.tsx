@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GlowFx, SoundFX } from "./fx";
+import { MobileGate } from "./mobile-gate";
 
 type Tab = "sobre" | "ingredientes" | "nutricao";
 
@@ -490,6 +491,7 @@ export default function Home() {
       </footer>
       <ScrollToTop />
       <BackgroundMusic />
+      <MobileGate shopUrl={SHOP_URL} />
       {selected && <ProductModal product={selected} onClose={() => setSelected(null)} />}
     </main>
   );
