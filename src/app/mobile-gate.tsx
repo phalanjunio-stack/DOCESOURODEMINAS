@@ -4,8 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { SoundFX } from "./fx";
 
-// Troque por /images/links-bg.png quando a arte definitiva estiver pronta.
-const BACKGROUND = "/images/bg-hero-minas.png";
+const BACKGROUND = "/images/links-bg.png";
 
 const INSTAGRAM = "https://www.instagram.com/docesourodeminas";
 const GRANFRUTALLE = "https://www.instagram.com/granfrutalleoficila_grupodom";

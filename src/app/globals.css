@@ -111,20 +111,23 @@
 
 @media(max-width:760px){
   .product-stage{
-    left:-5%;
+    left:-4%;
     right:auto;
-    width:132%;
+    width:108%;
     height:43%;
     padding:0 0 7%;
   }
   .pedestal{left:-2%;right:-2%;bottom:-4%;height:30%}
   .product-stage .hero-pot{
     bottom:auto;
-    flex:1 1 0;
+    flex:var(--pot-scale) 1 0%;
     width:auto;
-    height:auto;
-    aspect-ratio:1;
-    margin-left:0;
+    height:calc(var(--pot-scale) * 34vw);
+    aspect-ratio:auto;
+    /* As fotos dos potes sao quadradas, entao com object-fit:contain quem manda
+       no tamanho e a largura da caixa. A margem negativa sobrepoe as caixas e
+       alarga cada uma sem empurrar os potes das pontas para fora da tela. */
+    margin:0 -5%;
   }
   .product-stage .pot1{--pot-scale:1.22;--pot-visual:1.03;--pot-y:8px}
   .product-stage .pot2{--pot-scale:1.30;--pot-visual:1.06;--pot-y:12px}
@@ -334,8 +337,8 @@
 @media(max-width:760px){
   .mobile-gate{
     display:flex;position:fixed;inset:0;z-index:200;
-    align-items:center;justify-content:center;
-    padding:34px 22px;overflow-y:auto;
+    align-items:flex-start;justify-content:center;
+    padding:20px 22px 30px;overflow-y:auto;
     animation:gateIn .45s cubic-bezier(.22,1,.36,1) both;
   }
   .mobile-gate.is-leaving{animation:gateOut .32s ease forwards}
@@ -343,11 +346,13 @@
   .gate-bg img{object-fit:cover;object-position:center}
   .gate-bg:after{
     content:"";position:absolute;inset:0;
-    background:linear-gradient(180deg,rgba(255,250,241,.94),rgba(255,247,232,.82) 45%,rgba(255,244,225,.94));
+    /* Clareia so o topo e o meio, onde ficam a logo e os botoes.
+       Embaixo fica transparente para os potes da arte aparecerem. */
+    background:linear-gradient(180deg,rgba(255,250,241,.74) 0%,rgba(255,248,236,.58) 36%,rgba(255,246,230,.14) 62%,rgba(255,244,225,0) 100%);
   }
   .gate-content{position:relative;z-index:1;width:100%;max-width:420px;text-align:center}
   .gate-logo{position:relative;width:min(58vw,210px);aspect-ratio:135/165;margin:0 auto 14px;filter:drop-shadow(0 8px 14px rgba(65,30,18,.2))}
-  .gate-logo img{object-fit:contain}
+  .gate-logo img{object-fit:contain;transform-origin:50% 70%;animation:logoFloat 2.2s ease-in-out infinite alternate}
   .gate-tagline{
     font-family:var(--font-cormorant),Georgia,serif;font-size:clamp(21px,6vw,27px);
     line-height:1.15;color:var(--brown);
