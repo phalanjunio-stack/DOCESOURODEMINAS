@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { GlowFx, SoundFX } from "./fx";
 
 type Tab = "sobre" | "ingredientes" | "nutricao";
 
@@ -213,11 +214,11 @@ function ProductCarousel({ items, alt }: { items: MediaItem[]; alt: string }) {
       </div>
       {items.length > 1 && (
         <>
-          <button className="carousel-nav prev" aria-label="Foto anterior" onClick={() => goTo(index - 1)} disabled={index === 0}>‹</button>
-          <button className="carousel-nav next" aria-label="Próxima foto" onClick={() => goTo(index + 1)} disabled={index === items.length - 1}>›</button>
+          <button className="carousel-nav prev" aria-label="Foto anterior" onClick={() => { SoundFX.click(); goTo(index - 1); }} disabled={index === 0}>‹</button>
+          <button className="carousel-nav next" aria-label="Próxima foto" onClick={() => { SoundFX.click(); goTo(index + 1); }} disabled={index === items.length - 1}>›</button>
           <div className="carousel-dots" role="tablist" aria-label="Selecionar imagem">
             {items.map((item, i) => (
-              <button key={item.src} role="tab" aria-selected={i === index} aria-label={`Ver foto ${i + 1}`} onClick={() => goTo(i)} />
+              <button key={item.src} role="tab" aria-selected={i === index} aria-label={`Ver foto ${i + 1}`} onClick={() => { SoundFX.click(); goTo(i); }} />
             ))}
           </div>
         </>
@@ -228,24 +229,37 @@ function ProductCarousel({ items, alt }: { items: MediaItem[]; alt: string }) {
 
 function ProductModal({ product, onClose }: { product: Product; onClose: () => void }) {
   const [tab, setTab] = useState<Tab>("sobre");
+  const [closing, setClosing] = useState(false);
+  const closingRef = useRef(false);
+
+  // Toca o som e roda a animação de saída antes de desmontar.
+  const requestClose = useCallback(() => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    setClosing(true);
+    SoundFX.close();
+    window.setTimeout(onClose, 280);
+  }, [onClose]);
 
   useEffect(() => {
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") requestClose();
+    };
     window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = previous;
       window.removeEventListener("keydown", onKey);
     };
-  }, [onClose]);
+  }, [requestClose]);
 
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+    <div className={closing ? "modal-backdrop is-closing" : "modal-backdrop"} role="presentation" onMouseDown={requestClose}>
       <section className="product-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" onMouseDown={(event) => event.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="Fechar informações">×</button>
+        <button className="modal-close" onClick={requestClose} aria-label="Fechar informações">×</button>
         <div className="modal-visual" style={{ "--accent": product.accent } as React.CSSProperties}>
-          <button className="modal-back" onClick={onClose}>‹ <span>Voltar aos sabores</span></button>
+          <button className="modal-back" onClick={requestClose}>‹ <span>Voltar aos sabores</span></button>
           <ProductCarousel items={product.gallery} alt={product.name} />
           <p>Tradição que adoça<br />a vida!</p>
         </div>
@@ -254,16 +268,16 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
           <h2 id="modal-title">{product.name}</h2>
           <p className="modal-lead">{product.description}</p>
           <div className="tabs" role="tablist" aria-label="Informações do doce">
-            <button role="tab" aria-selected={tab === "sobre"} onClick={() => setTab("sobre")}>Sobre o doce</button>
-            <button role="tab" aria-selected={tab === "ingredientes"} onClick={() => setTab("ingredientes")}>Ingredientes</button>
-            <button role="tab" aria-selected={tab === "nutricao"} onClick={() => setTab("nutricao")}>Tabela nutricional</button>
+            <button role="tab" aria-selected={tab === "sobre"} onClick={() => { SoundFX.click(); setTab("sobre"); }}>Sobre o doce</button>
+            <button role="tab" aria-selected={tab === "ingredientes"} onClick={() => { SoundFX.click(); setTab("ingredientes"); }}>Ingredientes</button>
+            <button role="tab" aria-selected={tab === "nutricao"} onClick={() => { SoundFX.click(); setTab("nutricao"); }}>Tabela nutricional</button>
           </div>
-          <div className="tab-panel" role="tabpanel">
+          <div className="tab-panel" role="tabpanel" key={tab}>
             {tab === "sobre" && <><div className="facts"><div><span><Icon name="box" /></span><p><strong>21</strong> unidades</p></div><div><span><Icon name="bag" /></span><p><strong>1,050 kg</strong> peso líquido</p></div><div><span><Icon name="calendar" /></span><p>Validade: <strong>6 meses</strong></p></div></div><div className="distribution"><span><Icon name="leaf" /></span><div><strong>Disponível para distribuição</strong><p>Consulte os pontos de venda da sua região.</p></div></div></>}
             {tab === "ingredientes" && <div className="text-panel"><h3>Ingredientes</h3><p>{product.ingredients}</p><h3>Alérgicos</h3><p>{product.allergens}</p></div>}
             {tab === "nutricao" && <div className="text-panel nutrition-note"><h3>Informação nutricional</h3><p>Para garantir dados corretos e atualizados, consulte a tabela nutricional impressa no rótulo do produto.</p><small>As informações podem variar conforme atualização de embalagem e lote.</small></div>}
           </div>
-          <div className="modal-actions"><a className="action-primary" href="#onde-encontrar" onClick={onClose}><Icon name="pin" />Onde encontrar</a><a className="action-secondary" href={product.shopee} target="_blank" rel="noopener noreferrer"><Icon name="bag" />Ver na Shopee</a></div>
+          <div className="modal-actions"><a className="action-primary" href="#onde-encontrar" onClick={requestClose}><Icon name="pin" />Onde encontrar</a><a className="action-secondary" href={product.shopee} target="_blank" rel="noopener noreferrer"><Icon name="bag" />Ver na Shopee</a></div>
           <div className="modal-trust"><span><Icon name="leaf" /> Receita mineira</span><span><Icon name="heart" /> Produção cuidadosa</span><span><Icon name="award" /> Qualidade em cada pote</span></div>
         </div>
       </section>
@@ -313,19 +327,119 @@ function ScrollToTop() {
   return (
     <button
       type="button"
-      className={visible ? "scroll-to-top is-visible" : "scroll-to-top"}
-      onClick={() => smoothScrollTo(0, 760)}
+      className={visible ? "scroll-to-top smoke-glow is-visible" : "scroll-to-top smoke-glow"}
+      onClick={() => { SoundFX.click(); smoothScrollTo(0, 760); }}
+      onMouseEnter={() => SoundFX.hover()}
       aria-label="Voltar ao topo"
       title="Voltar ao topo"
     >
+      <GlowFx />
       <span>↑</span>
     </button>
+  );
+}
+
+function useHeaderScroll() {
+  const [compact, setCompact] = useState(false);
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    let lastY = window.scrollY;
+    let ticking = false;
+    const update = () => {
+      const y = window.scrollY;
+      setCompact(y > 6);
+      // Esconde ao descer, revela ao subir — como no site antigo.
+      if (y > lastY && y > 120) setHidden(true);
+      else if (y < lastY) setHidden(false);
+      lastY = y;
+      ticking = false;
+    };
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return { compact, hidden };
+}
+
+function BackgroundMusic() {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const pausedByUser = useRef(false);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.volume = 0.35;
+    const start = () => audio.play().then(() => setPlaying(true)).catch(() => undefined);
+    start();
+    // Navegadores bloqueiam áudio com som até haver algum gesto do usuário.
+    const onGesture = (event: Event) => {
+      // Quem pausou de propósito não quer a música de volta ao clicar na página.
+      if (pausedByUser.current) return;
+      // O próprio botão já faz play/pause; sem isso o pointerdown liga e o click desliga.
+      if ((event.target as Element | null)?.closest?.(".sound-toggle")) return;
+      if (audio.paused) start();
+    };
+    window.addEventListener("pointerdown", onGesture);
+    window.addEventListener("keydown", onGesture);
+    return () => {
+      window.removeEventListener("pointerdown", onGesture);
+      window.removeEventListener("keydown", onGesture);
+    };
+  }, []);
+
+  const toggle = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) {
+      pausedByUser.current = false;
+      SoundFX.magic();
+      audio.play().then(() => setPlaying(true)).catch(() => undefined);
+    } else {
+      pausedByUser.current = true;
+      SoundFX.magicLow();
+      audio.pause();
+      setPlaying(false);
+    }
+  };
+
+  return (
+    <>
+      <audio ref={audioRef} src="/audio/doce-campo.mp3" loop preload="auto" />
+      <button
+        type="button"
+        className={playing ? "sound-toggle smoke-glow is-playing" : "sound-toggle smoke-glow"}
+        onClick={toggle}
+        onMouseEnter={() => SoundFX.hover()}
+        aria-pressed={playing}
+        aria-label={playing ? "Desligar música de fundo" : "Ligar música de fundo"}
+        title={playing ? "Desligar música" : "Ligar música"}
+      >
+        <GlowFx />
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M11 5 6.5 9H3v6h3.5L11 19V5Z" />
+          {playing ? <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /> : <path d="m16 9.5 5 5m0-5-5 5" />}
+        </svg>
+      </button>
+    </>
   );
 }
 
 export default function Home() {
   const [selected, setSelected] = useState<Product | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { compact, hidden } = useHeaderScroll();
+  const openProduct = (product: Product) => {
+    SoundFX.open();
+    setSelected(product);
+  };
   const navigateTo = (event: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     event.preventDefault();
     setMenuOpen(false);
@@ -334,18 +448,18 @@ export default function Home() {
   return (
     <main>
       <div className="social-strip"><div><a href="https://www.instagram.com/docesourodeminas" target="_blank" rel="noopener noreferrer">◎ &nbsp;@docesourodeminas</a><a href="https://www.instagram.com/granfrutalleoficila_grupodom" target="_blank" rel="noopener noreferrer">◎ &nbsp;@granfrutalleoficila_grupodom</a></div><span>Sabores que contam histórias</span></div>
-      <header className="site-header">
+      <header className={`site-header${compact ? " is-compact" : ""}${hidden && !menuOpen ? " is-hidden" : ""}`}>
         <button className="menu-toggle" aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)}>Menu <i /></button>
         <nav className={menuOpen ? "nav open" : "nav"} aria-label="Navegação principal"><a href="#sabores" onClick={(event) => navigateTo(event, "sabores")}>Sabores</a><a href="#historia" onClick={(event) => navigateTo(event, "historia")}>Nossa história</a><a href="#receitas" onClick={(event) => navigateTo(event, "receitas")}>Receitas</a><span className="nav-space" /><a href="#onde-encontrar" onClick={(event) => navigateTo(event, "onde-encontrar")}>Onde encontrar</a><a href="#contato" onClick={(event) => navigateTo(event, "contato")}>Contato</a></nav>
         <a className="logo" href="#inicio" onClick={(event) => navigateTo(event, "inicio")} aria-label="Doces Ouro de Minas — início"><Image src="/images/logo-ouro-de-minas.png" alt="Doces Ouro de Minas" fill priority sizes="150px" /></a>
       </header>
       <section className="hero" id="inicio">
         <div className="hero-copy"><p className="eyebrow"><i /> Sabores que contam histórias</p><h1>Doce de verdade,<br /><em>felicidade em<br />cada pote.</em></h1><p className="hero-description">Doces artesanais com o sabor autêntico de Minas Gerais. Tradição, qualidade e muito mais doce para o seu dia.</p><div className="hero-ctas"><a className="cta" href="#sabores" onClick={(event) => navigateTo(event, "sabores")}>Conheça os sabores <span>→</span></a><a className="history-link" href="#historia" onClick={(event) => navigateTo(event, "historia")}>Conheça nossa história</a></div></div>
-        <div className="product-stage" aria-label="Escolha um doce para conhecer"><p className="discover-note">Passe o mouse<br />para descobrir <span>↙</span></p>{products.map((product) => <button key={product.id} className={`hero-pot ${product.position}`} onClick={() => setSelected(product)} aria-label={`Conhecer ${product.name}`}><Image src={product.pot} alt="" fill priority sizes="(max-width: 700px) 28vw, 16vw" /><span>{product.name}</span></button>)}</div>
+        <div className="product-stage" aria-label="Escolha um doce para conhecer"><p className="discover-note">Passe o mouse<br />para descobrir <span>↙</span></p>{products.map((product) => <button key={product.id} className={`hero-pot ${product.position}`} onClick={() => openProduct(product)} onMouseEnter={() => SoundFX.hover()} aria-label={`Conhecer ${product.name}`}><Image src={product.pot} alt="" fill priority sizes="(max-width: 700px) 28vw, 16vw" /><span>{product.name}</span></button>)}</div>
         <button type="button" className="hero-scroll-next" onClick={() => smoothScrollToSection("sabores", 950)} aria-label="Ir para a próxima seção"><small>Próxima</small><span>↓</span></button>
         <div className="hero-features"><span><Icon name="leaf" /> Receitas tradicionais<br />mineiras</span><span><Icon name="award" /> Qualidade em<br />cada pote</span><span><Icon name="heart" /> Feito para<br />compartilhar</span><span><Icon name="pin" /> Onde encontrar</span></div>
       </section>
-      <section className="flavors" id="sabores"><div className="section-intro"><p className="eyebrow"><i /> Nossos sabores</p><h2>Tem um doce para<br />cada história.</h2><p>Clique em um sabor para conhecer cada detalhe — da receita às informações do pote.</p></div><div className="flavor-grid">{products.map((product, index) => <button className="flavor-card" key={product.id} onClick={() => setSelected(product)} style={{ "--card-accent": product.accent } as React.CSSProperties}><span className="card-number">0{index + 1}</span><div className="card-image"><Image src={product.candy} alt="" fill sizes="(max-width: 700px) 80vw, 24vw" /></div><div><p>{product.eyebrow}</p><h3>{product.name}</h3><span>Conhecer o doce →</span></div></button>)}</div></section>
+      <section className="flavors" id="sabores"><div className="section-intro"><p className="eyebrow"><i /> Nossos sabores</p><h2>Tem um doce para<br />cada história.</h2><p>Clique em um sabor para conhecer cada detalhe — da receita às informações do pote.</p></div><div className="flavor-grid">{products.map((product, index) => <button className="flavor-card" key={product.id} onClick={() => openProduct(product)} onMouseEnter={() => SoundFX.hover()} style={{ "--card-accent": product.accent } as React.CSSProperties}><span className="card-number">0{index + 1}</span><div className="card-image"><Image src={product.candy} alt="" fill sizes="(max-width: 700px) 80vw, 24vw" /></div><div><p>{product.eyebrow}</p><h3>{product.name}</h3><span>Conhecer o doce →</span></div></button>)}</div></section>
       <section className="story" id="historia"><div className="story-mark">OM</div><div><p className="eyebrow"><i /> Nossa história</p><h2>De Minas para<br />todo o Brasil.</h2></div><div><p>Receitas que atravessam gerações, feitas com cuidado e aquele sabor que a gente reconhece de olhos fechados.</p><p>Ouro de Minas nasceu da tradição e cresceu sem perder a essência: criar doces para compartilhar bons momentos.</p></div></section>
       <section className="recipes" id="receitas"><div className="recipe-copy"><p className="eyebrow"><i /> Receitas & momentos</p><h2>Um doce,<br />muitas maneiras<br />de aproveitar.</h2><p>No café, na sobremesa ou naquele presente especial: sempre existe um motivo para abrir mais um pote.</p></div><div className="recipe-visual"><Image src="/images/doces/pe-de-moca.png" alt="Pé de Moça Ouro de Minas" fill sizes="50vw" /><span>Receita mineira<br />para compartilhar</span></div></section>
       <section className="find" id="onde-encontrar"><div><p className="eyebrow"><i /> Onde encontrar</p><h2>O sabor de Minas<br />mais perto de você.</h2></div><div><p>Encontre os produtos em pontos de venda parceiros ou visite a loja oficial na Shopee.</p><a href={SHOP_URL} target="_blank" rel="noopener noreferrer" className="cta">Visitar a loja oficial <span>↗</span></a></div></section>
@@ -375,6 +489,7 @@ export default function Home() {
         <div className="footer-bottom"><span>Sabores que contam histórias.</span><span>© {new Date().getFullYear()} Doces Ouro de Minas. Todos os direitos reservados.</span></div>
       </footer>
       <ScrollToTop />
+      <BackgroundMusic />
       {selected && <ProductModal product={selected} onClose={() => setSelected(null)} />}
     </main>
   );
